@@ -32,11 +32,6 @@ var AlarmEdit = {
     return this.scrollList = document.getElementById('edit-alarm');
   },
 
-  get alarmTitle() {
-    delete this.alarmTitle;
-    return this.alarmTitle = document.getElementById('alarm-title');
-  },
-
   init: function aev_init() {
     this.selects = {};
     [
@@ -92,6 +87,13 @@ var AlarmEdit = {
     });
 
     mozL10n.translate(this.element);
+
+    // When the language changes, the value of 'weekStartsOnMonday'
+    // might change. Since that's more than a simple text string, we
+    // can't just use mozL10n.translate().
+    window.addEventListener('localized', this.updateL10n.bind(this));
+    this.updateL10n();
+
     this.buttons.close.addEventListener('click', this);
     this.buttons.done.addEventListener('click', this);
     this.selects.sound.addEventListener('change', this);
@@ -110,6 +112,21 @@ var AlarmEdit = {
     if (evt.keyCode === KeyEvent.DOM_VK_RETURN) {
       evt.preventDefault();
       evt.target.blur();
+    }
+  },
+
+  updateL10n: function() {
+    // Move the weekdays around to properly account for whether the
+    // week starts on Sunday or Monday.
+    var weekStartsOnMonday = parseInt(_('weekStartsOnMonday'), 10);
+    var sunday = document.getElementById('repeat-select-sunday');
+    var parent = sunday.parentElement;
+    if (weekStartsOnMonday) {
+      // Sunday gets moved to the end.
+      parent.appendChild(sunday);
+    } else {
+      // Sunday goes first.
+      parent.insertBefore(sunday, parent.firstChild);
     }
   },
 
@@ -161,18 +178,11 @@ var AlarmEdit = {
     // scroll to top of form list
     this.scrollList.scrollTop = 0;
 
-    if (!alarm) {
-      this.element.classList.add('new');
-      this.alarmTitle.textContent = _('newAlarm');
-      alarm = new Alarm();
-    } else {
-      this.element.classList.remove('new');
-      this.alarmTitle.textContent = _('editAlarm');
-    }
-    this.alarm = new Alarm(alarm);
+    this.element.classList.toggle('new', !alarm);
+    this.alarm = new Alarm(alarm || null);
 
-    this.element.dataset.id = alarm.id;
-    this.inputs.name.value = alarm.label;
+    this.element.dataset.id = this.alarm.id;
+    this.inputs.name.value = this.alarm.label;
 
     // Init time, repeat, sound, snooze selection menu.
     this.initTimeSelect();

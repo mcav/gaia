@@ -48,6 +48,7 @@ function FormButton(input, config) {
   this.input = input;
   createButton(this);
 
+  this.input.classList.add('form-button-input');
   // hide input
   this.input.classList.add('form-button-hide');
 
@@ -60,9 +61,20 @@ function FormButton(input, config) {
 
   input.addEventListener('change', this.refresh.bind(this), false);
   input.addEventListener('blur', this.refresh.bind(this), false);
+
+  // Bind this.refresh so that the listener can be easily removed.
+  this.refresh = this.refresh.bind(this);
+  // Update the dropdown when the language changes.
+  window.addEventListener('localized', this.refresh);
 }
 
 FormButton.prototype = {
+
+  /** Remove all event handlers. */
+  destroy: function() {
+    window.removeEventListener('localized', this.refresh);
+  },
+
   /**
    * focus Triggers a focus event on the input associated with this
    * FormButton.

@@ -65,6 +65,11 @@ var AlarmList = {
     this.newAlarmButton.addEventListener('click', this);
     this.alarms.addEventListener('click', this);
     this.banner = new Banner('banner-countdown', 'banner-tmpl');
+
+    // Bind this.refresh so that the listener can be easily removed.
+    this.refresh = this.refresh.bind(this);
+    // Update the dropdown when the language changes.
+    window.addEventListener('localized', this.refresh);
     this.refresh();
     AlarmManager.regUpdateAlarmEnableState(this.refreshItem.bind(this));
   },
