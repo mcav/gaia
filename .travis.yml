@@ -11,11 +11,22 @@ branches:
   - master
 env:
   matrix:
-  - CI_ACTION=linters
-  - CI_ACTION=unit-tests-in-firefox
-  - CI_ACTION=marionette_js
-  - CI_ACTION=gaia_ui_tests
-  - CI_ACTION=build_tests
+  - CI_ACTION=marionette_js TRY=01
+  - CI_ACTION=marionette_js TRY=02
+  - CI_ACTION=marionette_js TRY=03
+  - CI_ACTION=marionette_js TRY=04
+  - CI_ACTION=marionette_js TRY=05
+  - CI_ACTION=marionette_js TRY=06
+  - CI_ACTION=marionette_js TRY=07
+  - CI_ACTION=marionette_js TRY=08
+  - CI_ACTION=marionette_js TRY=09
+  - CI_ACTION=marionette_js TRY=10
+  - CI_ACTION=marionette_js TRY=11
+  - CI_ACTION=marionette_js TRY=12
+  - CI_ACTION=marionette_js TRY=13
+  - CI_ACTION=marionette_js TRY=14
+  - CI_ACTION=marionette_js TRY=15
+  - CI_ACTION=marionette_js TRY=16
   global:
   - ARTIFACTS_S3_BUCKET=mozilla-releng-travis-uploads
   - secure: Gf2qm+xhLRTotuIvDD7HrNRmng3/dctGdsgF5P4aEu3nDujfxtZTp4sGirTqIngbfVzh9WkJ9eoT0yaDXtvWkr40Df6vwAUyI3P1x+NBOa2CkLz7U+f9j1yaJ3pJ121+L3o+7eTzJy/mvXHJYXAfa7rxcmjrCHpH5BSm+9/OZ4s=

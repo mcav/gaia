@@ -65,6 +65,7 @@ AlarmActions.prototype = {
 
   saveForm: function() {
     this.actions.tapAndTransition('#alarm-done');
+    this.waitForBanner();
   },
 
   get nameField() {
