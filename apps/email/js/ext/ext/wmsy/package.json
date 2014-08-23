@@ -1,0 +1,8 @@
+{
+    "id": "jid0-uZgCQ9TxXyE4ZYBtoAG4EqLZMAI", 
+    "main": "wmsy/main-driver", 
+    "name": "wmsy", 
+    "description": "Widget Manifesting SYstem",
+    "dependencies": ["jstut"],
+    "lib": ["lib", "lib-jetpack"]
+}

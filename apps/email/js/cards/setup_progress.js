@@ -4,7 +4,7 @@ define(function(require) {
 var templateNode = require('tmpl!./setup_progress.html'),
     common = require('mail_common'),
     model = require('model'),
-    MailAPI = require('api'),
+    MailAPI = require('api').MailAPI,
     Cards = common.Cards;
 
 /**

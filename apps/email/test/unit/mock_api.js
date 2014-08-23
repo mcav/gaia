@@ -59,5 +59,10 @@ define(function() {
     }
   };
 
-  return api;
+  return {
+    whenLoaded: function(cb) {
+      cb(api);
+    },
+    MailAPI: api
+  };
 });

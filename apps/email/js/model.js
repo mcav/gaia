@@ -132,42 +132,43 @@ define(function(require) {
      */
     init: function(showLatest, callback) {
       // Set inited to false to indicate initialization is in progress.
-      this.inited = false;
-      require(['api'], function(MailAPI) {
-        if (!this.api) {
-          this.api = MailAPI;
-          this._callEmit('api', this.api);
-        }
-
-        // If already initialized before, clear out previous state.
-        this.die();
-
-        var acctsSlice = MailAPI.viewAccounts(false);
-        acctsSlice.oncomplete = (function() {
-          // To prevent a race between Model.init() and
-          // acctsSlice.oncomplete, only assign model.acctsSlice when
-          // the slice has actually loaded (i.e. after
-          // acctsSlice.oncomplete fires).
-          model.acctsSlice = acctsSlice;
-          if (acctsSlice.items.length) {
-            // For now, just use the first one; we do attempt to put unified
-            // first so this should generally do the right thing.
-            // XXX: Because we don't have unified account now, we should
-            //      switch to the latest account which user just added.
-            var account = showLatest ? acctsSlice.items.slice(-1)[0] :
-                                       acctsSlice.defaultAccount;
-
-            this.changeAccount(account, callback);
+      require(['api'], function(api) {
+        api.whenLoaded(function(MailAPI) {
+          if (!this.api) {
+            this.api = MailAPI;
+            this._callEmit('api', this.api);
           }
 
-          this.inited = true;
-          this._callEmit('acctsSlice');
+          // If already initialized before, clear out previous state.
+          this.die();
 
-          // Once the API/worker has started up and we have received account
-          // data, consider the app fully loaded: we have verified full flow
-          // of data from front to back.
-          evt.emit('metrics:apiDone');
-        }).bind(this);
+          var acctsSlice = MailAPI.viewAccounts(false);
+          acctsSlice.oncomplete = (function() {
+            // To prevent a race between Model.init() and
+            // acctsSlice.oncomplete, only assign model.acctsSlice when
+            // the slice has actually loaded (i.e. after
+            // acctsSlice.oncomplete fires).
+            model.acctsSlice = acctsSlice;
+            if (acctsSlice.items.length) {
+              // For now, just use the first one; we do attempt to put unified
+              // first so this should generally do the right thing.
+              // XXX: Because we don't have unified account now, we should
+              //      switch to the latest account which user just added.
+              var account = showLatest ? acctsSlice.items.slice(-1)[0] :
+                    acctsSlice.defaultAccount;
+
+              this.changeAccount(account, callback);
+            }
+
+            this.inited = true;
+            this._callEmit('acctsSlice');
+
+            // Once the API/worker has started up and we have received account
+            // data, consider the app fully loaded: we have verified full flow
+            // of data from front to back.
+            evt.emit('metrics:apiDone');
+          }).bind(this);
+        }.bind(this));
       }.bind(this));
     },
 

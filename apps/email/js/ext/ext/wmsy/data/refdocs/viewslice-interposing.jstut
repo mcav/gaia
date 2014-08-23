@@ -1,0 +1,135 @@
+#lang jstut/interactive
+
+@title{Interposing View Slices}
+
+Interposing view slices decorate another view slice by inserting new, synthetic
+objects based on the output of two helper routines: a classifier, and a maker.
+
+For example, let us suppose you are writing an address book application and would
+like to insert giant letters before each section of the alphabet.
+
+@collapsey["Addressbook Data"]{
+@exampleCode["addrbook-data"
+@js{
+  var people = [
+    {name: "Aardvarkman"},
+    {name: "Alice"},
+    {name: "Betty"},
+    {name: "Bob"},
+    {name: "Chuck"},
+  ];
+  var addrbook = {
+    peeps: people,
+  };
+}]}
+
+@exampleShow["addrbook-example"
+  "wmsy-prolog" "addrbook-interposer"
+  "addrbook-widg-items" "addrbook-widg-addrbook" "addrbook-data"
+  "addrbook-insertion"
+]{Addressbook Example Output}
+
+You provide a classifier function and a maker function.  The classifier function
+is invoked for every object that is to be exposed to the consumer of the view
+slice.  Whenever the value returned by the classifier differs between two
+consecutive objects in the view slice, we invoke the maker function.  We may
+optionally also invoke the maker for the first element in the view slice
+(default: yes) and the last element (default: no).
+
+@exampleCode["addrbook-interposer" #:deps "wmsy-prolog"
+@js{
+  var letterInterposer = wy.defineInterposingViewSlice({
+    classifier: traceWrap("green", function classifier(person) {
+      return person.name[0].toLocaleUpperCase();
+    }),
+    maker: traceWrap("blue", function maker(pre, post) {
+      return {
+        letter: post.name[0].toLocaleUpperCase(),
+      };
+    }),
+  });
+}]
+
+We have instrumented our example code with calls to traceWrap which result in
+the trace output we see below.  Feel free to edit the addressbook data code
+above to add more names; hit the 'Apply Changes' button when you are done to
+see the new output and the new trace results.
+
+@traceOutput["addrbook-example"]{Addressbook Example Trace}
+
+The letterInterposer plugs into the definition of a list widget where you would
+normally specify the constraint.  It is a function and we call it with two
+(positional) arguments.  It is a function purely for aesthetic and reuse
+reasons; there is no magic going on under the hood.
+@itemize[
+  @item{
+    The @termref{constraint} to use when finding the right widget to use for
+    the synthetic objects created by the maker function.
+  }
+  @item{
+    The @termref{constraint} to use for the normal (non-synthetic) objects.
+    If you were not using the letterInterposer, this constraint is what
+    would go in the spot where we are invoking the letterInterposer.
+  }
+]
+
+
+@exampleCode["addrbook-widg-addrbook"
+  #:deps "wmsy-prolog" "addrbook-interposer"
+  #:highlight letterInterposer
+@js{
+  wy.defineWidget({
+    name: "addressbook",
+    constraint: {
+      type: "addressbook",
+    },
+    structure: {
+      peeps: wy.vertList(
+               letterInterposer({type: "interposed"},
+                                {type: "person"}),
+               "peeps"),
+    }
+  });
+}]
+
+@collapsed["Addressbook Widgets"]{
+@exampleCode["addrbook-widg-items" #:deps "wmsy-prolog"
+@js{
+  wy.defineWidget({
+    name: "giant-letter",
+    constraint: {
+      type: "interposed",
+    },
+    structure: wy.bind("letter"),
+    style: {
+      root: [
+        "font-size: 200%;",
+      ],
+    },
+  });
+
+  wy.defineWidget({
+    name: "person",
+    constraint: {
+      type: "person",
+    },
+    structure: {
+      name: wy.bind("name"),
+    },
+  });
+}]}
+
+@collapsed["Wmsy Boilerplate"]{@boilerplate["wmsy-prolog"
+@js{
+  var wmsy = require("wmsy/wmsy");
+  var wy = new wmsy.WmsyDomain({id: exampleName, domain: exampleName,
+                                clickToFocus: true});
+}]}
+
+@collapsed["Addressbook Example Insertion"]{
+@exampleCode["addrbook-insertion" #:deps "wmsy-prolog" "addrbook-data"
+@js{
+  var binder = wy.wrapElement(exampleDomNode);
+  binder.bind({type: "addressbook", obj: addrbook});
+}]}
+

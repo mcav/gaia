@@ -1,0 +1,134 @@
+<!doctype html>
+<!-- Copyright 2012 Mozilla Foundation
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License. -->
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>EAS</title>
+    <script type="application/javascript;version=1.8"
+            src="../credentials.js"></script>
+    <script type="application/javascript;version=1.8"
+            src="../wbxml/encoding.js"></script>
+    <script type="application/javascript;version=1.8"
+            src="../wbxml/wbxml.js"></script>
+    <script type="application/javascript;version=1.8"
+            src="../codepages/Common.js"></script>
+    <script type="application/javascript;version=1.8"
+            src="../codepages/AirSync.js"></script>
+    <script type="application/javascript;version=1.8"
+            src="../codepages/Contacts.js"></script>
+    <script type="application/javascript;version=1.8"
+            src="../codepages/Email.js"></script>
+    <script type="application/javascript;version=1.8"
+            src="../codepages/Calendar.js"></script>
+    <script type="application/javascript;version=1.8"
+            src="../codepages/Move.js"></script>
+    <script type="application/javascript;version=1.8"
+            src="../codepages/ItemEstimate.js"></script>
+    <script type="application/javascript;version=1.8"
+            src="../codepages/FolderHierarchy.js"></script>
+    <script type="application/javascript;version=1.8"
+            src="../codepages/MeetingResponse.js"></script>
+    <script type="application/javascript;version=1.8"
+            src="../codepages/Tasks.js"></script>
+    <script type="application/javascript;version=1.8"
+            src="../codepages/ResolveRecipients.js"></script>
+    <script type="application/javascript;version=1.8"
+            src="../codepages/ValidateCert.js"></script>
+    <script type="application/javascript;version=1.8"
+            src="../codepages/Contacts2.js"></script>
+    <script type="application/javascript;version=1.8"
+            src="../codepages/Ping.js"></script>
+    <script type="application/javascript;version=1.8"
+            src="../codepages/Provision.js"></script>
+    <script type="application/javascript;version=1.8"
+            src="../codepages/Search.js"></script>
+    <script type="application/javascript;version=1.8"
+            src="../codepages/GAL.js"></script>
+    <script type="application/javascript;version=1.8"
+            src="../codepages/AirSyncBase.js"></script>
+    <script type="application/javascript;version=1.8"
+            src="../codepages/Settings.js"></script>
+    <script type="application/javascript;version=1.8"
+            src="../codepages/DocumentLibrary.js"></script>
+    <script type="application/javascript;version=1.8"
+            src="../codepages/ItemOperations.js"></script>
+    <script type="application/javascript;version=1.8"
+            src="../codepages/ComposeMail.js"></script>
+    <script type="application/javascript;version=1.8"
+            src="../codepages/Email2.js"></script>
+    <script type="application/javascript;version=1.8"
+            src="../codepages/Notes.js"></script>
+    <script type="application/javascript;version=1.8"
+            src="../codepages/RightsManagement.js"></script>
+    <script type="application/javascript;version=1.8"
+            src="../codepages.js"></script>
+    <script type="application/javascript;version=1.8"
+            src="../protocol.js"></script>
+    <script type="application/javascript;version=1.8"
+            src="email.js"></script>
+    <style type="text/css">
+      .output {
+        border: 1px solid gray;
+        font-family: monospace;
+        white-space: pre-wrap;
+        margin-bottom: 1em;
+      }
+      .link {
+        color: blue;
+        cursor: pointer;
+      }
+      .link:hover {
+        color: red;
+        text-decoration: underline;
+      }
+
+      #content {
+        display: table;
+        width: 100%;
+        border-collapse: collapse;
+      }
+      #content > * {
+        display: table-cell;
+        border: 1px solid gray;
+        vertical-align: top;
+      }
+      #folders {
+        width: 20%;
+      }
+      #messages, #message {
+        width: 40%;
+      }
+      #message {
+        white-space: pre-wrap;
+      }
+      h1 {
+        margin-top: 0;
+        border-bottom: 1px solid gray;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="content">
+      <div id="folders"></div>
+      <div id="messages">
+        <h1 id="folderName"></h1>
+        <div id="messageList"></div>
+      </div>
+      <div id="message"></div>
+    </div>
+    Log <span class="link" onclick="clearLog();">(clear)</span>
+    <div id="log" class="output"></div>
+  </body>
+</html>
