@@ -4,7 +4,7 @@ define(function(require) {
 
 var templateNode = require('tmpl!./settings_debug.html'),
     common = require('mail_common'),
-    MailAPI = require('api').MailAPI,
+    MailAPI = require('api'),
     Cards = common.Cards;
 
 if (!_secretDebug)

@@ -24,6 +24,11 @@ if (typeof TestUrlResolver === 'undefined') {
       style: '../style',
       shared: '../shared'
     },
+     map: {
+      '*': {
+        'api': 'ext/main-frame-setup'
+      }
+    },
     shim: {
       l10ndate: ['l10nbase'],
 

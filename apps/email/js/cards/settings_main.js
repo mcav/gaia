@@ -4,7 +4,7 @@ define(function(require) {
 var templateNode = require('tmpl!./settings_main.html'),
     tngAccountItemNode = require('tmpl!./tng/account_item.html'),
     common = require('mail_common'),
-    MailAPI = require('api').MailAPI,
+    MailAPI = require('api'),
     Cards = common.Cards;
 /**
  * Global settings, list of accounts.
