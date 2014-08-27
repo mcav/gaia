@@ -60,6 +60,10 @@
     {
       name: 'cards/message_reader',
       exclude: ['mail_app']
+    },
+    {
+      name: 'ext/main-frame-setup',
+      exclude: ['mail_app']
     }
   ],
 

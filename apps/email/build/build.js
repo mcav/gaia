@@ -56,12 +56,18 @@ function optimize(options, r) {
   var deferred = utils.Q.defer();
   var optimizeOption = 'optimize=' + (options.GAIA_OPTIMIZE === '1' ?
     'uglify2' : 'none');
-  var configFile = utils.getFile(options.APP_DIR, 'build', 'email.build.js');
+  var gelamConfigFile = utils.getFile(options.APP_DIR,
+                                      'build', 'gelam_worker.build.js');
+  var appConfigFile = utils.getFile(options.APP_DIR, 'build', 'email.build.js');
   var stageShared = utils.getFile(options.STAGE_APP_DIR, 'shared');
   utils.ensureFolderExists(stageShared);
 
-  r.optimize([configFile.path, optimizeOption], function() {
-    deferred.resolve(options);
+  r.optimize([appConfigFile.path, optimizeOption], function() {
+    r.optimize([gelamConfigFile.path, optimizeOption], function() {
+      deferred.resolve(options);
+    }, function(err) {
+      deferred.reject(err);
+    });
   }, function(err) {
     deferred.reject(err);
   });
