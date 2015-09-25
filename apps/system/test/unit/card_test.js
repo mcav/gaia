@@ -101,6 +101,16 @@ suite('system/Card', function() {
       assert.ok(card.element.classList.contains('private'));
     });
 
+    test('calls loadAppIcon', function(){
+      this.sinon.stub(TaskManagerUtils, 'loadAppIcon')
+        .returns(Promise.resolve());
+
+      var card = new Card(makeApp({ name: 'app' }));
+
+      assert.ok(TaskManagerUtils.loadAppIcon.called);
+      assert.equal(TaskManagerUtils.loadAppIcon.firstCall.args[0], card.app);
+    });
+
     test('unkillable card', function(){
       var app = makeApp({
         name: 'privatewindow',
@@ -183,14 +193,14 @@ suite('system/SwipeToKillMotion', function() {
     el.addEventListener('card-dropped', dropStub);
     el.addEventListener('card-will-drag', willDragStub);
 
-    motion.handleEvent(touch('start', 0, 0));
-    motion.handleEvent(touch('move', 0, -10));
+    motion.el.dispatchEvent(touch('start', 0, 0));
+    motion.el.dispatchEvent(touch('move', 0, -10));
     assert.isTrue(motion.activelyDragging);
     assert.equal(currentY, '-10px');
-    motion.handleEvent(touch('move', 0, -20));
-    motion.handleEvent(touch('move', 0, -30));
-    motion.handleEvent(touch('move', 0, -40));
-    motion.handleEvent(touch('end'));
+    motion.el.dispatchEvent(touch('move', 0, -20));
+    motion.el.dispatchEvent(touch('move', 0, -30));
+    motion.el.dispatchEvent(touch('move', 0, -40));
+    motion.el.dispatchEvent(touch('end'));
     assert.isFalse(motion.activelyDragging);
 
     assert.equal(currentY, '-200%');
@@ -203,18 +213,24 @@ suite('system/SwipeToKillMotion', function() {
     var dropStub = this.sinon.stub();
     el.addEventListener('card-dropped', dropStub);
 
-    motion.handleEvent(touch('start', 0, 0));
-    motion.handleEvent(touch('move', 0, -10));
-    motion.handleEvent(touch('move', 0, -20));
-    motion.handleEvent(touch('move', 0, -20));
-    motion.handleEvent(touch('move', 0, -10));
-    motion.handleEvent(touch('end'));
+    motion.el.dispatchEvent(touch('start', 0, 0));
+    motion.el.dispatchEvent(touch('move', 0, -10));
+    motion.el.dispatchEvent(touch('move', 0, -20));
+    motion.el.dispatchEvent(touch('move', 0, -20));
+    motion.el.dispatchEvent(touch('move', 0, -10));
+    motion.el.dispatchEvent(touch('end'));
 
     assert.equal(currentY, '0px');
     assert.isTrue(dropStub.calledOnce);
     assert.isFalse(dropStub.firstCall.args[0].detail.willKill);
   });
 
+  test('touch events are intercepted by the card', function() {
+    var touchEvent = touch('start', 0, 0);
+    this.sinon.spy(touchEvent, 'stopPropagation');
+    motion.el.dispatchEvent(touchEvent);
+    assert.isTrue(touchEvent.stopPropagation.called);
+  });
 
   test('swipe up, but event canceled', function() {
     var dropStub = this.sinon.stub();
@@ -222,27 +238,29 @@ suite('system/SwipeToKillMotion', function() {
       evt.preventDefault();
     });
 
-    motion.handleEvent(touch('start', 0, 0));
-    motion.handleEvent(touch('move', 0, -10));
+    motion.el.dispatchEvent(touch('start', 0, 0));
+    motion.el.dispatchEvent(touch('move', 0, -10));
     assert.equal(currentY, '0px');
-    motion.handleEvent(touch('move', 0, -20));
-    motion.handleEvent(touch('move', 0, -30));
-    motion.handleEvent(touch('move', 0, -40));
-    motion.handleEvent(touch('end'));
+    motion.el.dispatchEvent(touch('move', 0, -20));
+    motion.el.dispatchEvent(touch('move', 0, -30));
+    motion.el.dispatchEvent(touch('move', 0, -40));
+    motion.el.dispatchEvent(touch('end'));
 
     assert.equal(currentY, '0px');
     assert.isFalse(dropStub.calledOnce); // no drop event expected
   });
 
   test('click while dragging should be ignored', function() {
-    motion.handleEvent(touch('start', 0, 0));
-    motion.handleEvent(touch('move', 0, -10));
-    motion.handleEvent(touch('move', 0, -20));
-    motion.handleEvent(touch('move', 0, -30));
+    motion.el.dispatchEvent(touch('start', 0, 0));
+    motion.el.dispatchEvent(touch('move', 0, -10));
+    motion.el.dispatchEvent(touch('move', 0, -20));
+    motion.el.dispatchEvent(touch('move', 0, -30));
 
     var click = new CustomEvent('click', { cancelable: true });
-    motion.handleEvent(click);
+    this.sinon.spy(click, 'stopPropagation');
+    motion.el.dispatchEvent(click);
     assert.isTrue(click.defaultPrevented);
+    assert.isTrue(click.stopPropagation.called);
   });
 
 });

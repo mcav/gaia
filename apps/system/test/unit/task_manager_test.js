@@ -1,5 +1,5 @@
 /* global MockStackManager, MockService,
-          TaskManager, AppWindow,
+          TaskManager, AppWindow, WheelEvent,
           HomescreenWindow, MockSettingsListener, MocksHelper, MockL10n */
 
 'use strict';
@@ -126,10 +126,12 @@ suite('system/TaskManager >', function() {
   suite('With Empty Task Manager', function() {
     var tm;
     var isActivated;
+    var homescreenApp;
 
     setup(function(done) {
       MockStackManager.mStack = [];
-      MockService.mockQueryWith('getHomescreen', new HomescreenWindow('home'));
+      homescreenApp = new HomescreenWindow('home');
+      MockService.mockQueryWith('getHomescreen', homescreenApp);
       MockService.mockQueryWith('fetchCurrentOrientation', 'portrait-primary');
       MockService.mockQueryWith('defaultOrientation', 'portrait-primary');
 
@@ -177,6 +179,28 @@ suite('system/TaskManager >', function() {
       clock.tick(1000);
     });
 
+    test('Should emit "cardviewclosed" after hiding', (done) => {
+      var spyCardViewClosed = spyEvent(window, 'cardviewclosed');
+      tm.hide().then(() => {
+        assert.isTrue(spyCardViewClosed.called);
+      }).then(done, done);
+      clock.tick(1000);
+    });
+
+    test('Should emit "cardviewbeforeshow" and "cardviewshown"', (done) => {
+      var spyCardViewBeforeShow = spyEvent(window, 'cardviewbeforeshow');
+      var spyCardViewShown = spyEvent(window, 'cardviewshown');
+      tm.hide().then(() => {
+        var show = tm.show();
+        assert.isTrue(spyCardViewBeforeShow.called);
+        clock.tick(1000);
+        return show;
+      }).then(() => {
+        assert.isTrue(spyCardViewShown.called);
+      }).then(done, done);
+      clock.tick(1000);
+    });
+
     test('Should not show if already showing', (done) => {
       var spyBeforeShow = spyEvent(window, 'cardviewbeforeshow');
       assert.isTrue(tm.isShown()); // (noting that we're already shown)
@@ -192,10 +216,44 @@ suite('system/TaskManager >', function() {
       assert.isFalse(showSpy.called);
     });
 
-    test('home takes you home', () => {
+    test('Should open in response to holdhome from homescreen', (done) => {
+      clock.restore();
+      tm.hide().then(() => {
+        MockService.mockQueryWith(
+          'AppWindowManager.getActiveWindow', homescreenApp);
+        var showSpy = sinon.spy(tm, 'show');
+
+        sinon.spy(homescreenApp, 'close');
+
+        var handleShown = () => {
+          window.removeEventListener('cardviewshown', handleShown);
+          try {
+            assert.ok(homescreenApp.close.calledWith('home-to-cardview'));
+            assert.isTrue(showSpy.called);
+            assert.ok(tm.element.classList.contains('from-home'));
+            done();
+          } catch(e) {
+            done(e);
+          }
+        };
+        window.addEventListener('cardviewshown', handleShown);
+
+        tm.respondToHierarchyEvent(new CustomEvent('holdhome'));
+      });
+    });
+
+    test('tapping the home button when open opens the homescreen', (done) => {
       sinon.spy(tm, 'hide');
+      homescreenApp.open = function(why) {
+        try {
+          assert.ok(tm.hide.calledOnce);
+          assert.equal(why, 'home-from-cardview');
+          done();
+        } catch(e) {
+          done(e);
+        }
+      };
       tm.respondToHierarchyEvent(new CustomEvent('home'));
-      assert.ok(tm.hide.calledOnce);
     });
 
     test('hit "home" while already closing, ignore event (bug 1203772)', () => {
@@ -210,17 +268,9 @@ suite('system/TaskManager >', function() {
 
     test('click when empty takes you home', () => {
       sinon.spy(tm, 'hide');
-      tm.handleEvent(new CustomEvent('click'));
+      tm.element.dispatchEvent(new CustomEvent('click'));
       clock.tick(1000);
       assert.ok(tm.hide.calledOnce);
-    });
-
-    test('takes you home after closing all cards', (done) => {
-      sinon.spy(tm, 'hide');
-      tm.handleEvent(new CustomEvent('appterminated'));
-      clock.tick(1000);
-      assert.ok(tm.hide.calledOnce);
-      done();
     });
   });
 
@@ -228,6 +278,7 @@ suite('system/TaskManager >', function() {
   suite('With Populated Task Manager', function() {
     var tm;
     var apps;
+    var homescreenApp;
     var APP_CONFIGS = {};
     var APP_NAMES = [
       'sms', 'game', 'browser1', 'game2', 'browser2', 'search'
@@ -251,7 +302,8 @@ suite('system/TaskManager >', function() {
 
     setup(function(done) {
       MockStackManager.mStack = [];
-      MockService.mockQueryWith('getHomescreen', new HomescreenWindow('home'));
+      homescreenApp = new HomescreenWindow('home');
+      MockService.mockQueryWith('getHomescreen', homescreenApp);
       MockService.mockQueryWith('fetchCurrentOrientation', 'portrait-primary');
       MockService.mockQueryWith('defaultOrientation', 'portrait-primary');
 
@@ -278,41 +330,81 @@ suite('system/TaskManager >', function() {
       clock.tick(1000);
     });
 
-    test('Proper state', (done) => {
+    test('Proper state', () => {
       assert.isTrue(tm.isShown());
       assert.ok(document.querySelector('#cards-view.active:not(.empty)'));
 
       assert.equal(
         MockStackManager.getCurrent(),
         tm.currentCard.app);
+    });
 
-      done();
+    test('Proper accessibility attributes for cards', function() {
+      assert.equal(
+        tm.currentCard.element.getAttribute('aria-labelledby'),
+        tm.currentCard.titleId);
+
+      var allCards = document.querySelectorAll('.card');
+      assert.equal(allCards.length, MockStackManager.mStack.length);
+      for (var i = 0; i < allCards.length; i++) {
+        var cardEl = allCards[i];
+        assert.equal(
+          cardEl.getAttribute('aria-hidden'),
+          cardEl === tm.currentCard.element ? 'false' : 'true');
+        assert.equal(cardEl.getAttribute('aria-setsize'), allCards.length + '');
+        assert.equal(cardEl.getAttribute('aria-posinset'), (i + 1).toString());
+        assert.equal(cardEl.getAttribute('role'), 'presentation');
+      }
     });
 
     test('Wheel handling for accessibility', (done) => {
       var card = tm.currentCard;
       var killAppStub = sinon.stub(card.app, 'kill');
       sinon.stub(card.app, 'killable', () => true);
-      tm.handleEvent({
-        type: 'wheel',
+      window.dispatchEvent(new WheelEvent('wheel', {
         deltaMode: 2,
-        DOM_DELTA_PAGE: 2,
         deltaY: 1
-      });
+      }));
       assert.isTrue(killAppStub.called);
 
       done();
     });
 
-    test('wheel left/right event', function() {
-      this.sinon.spy(tm, 'updateScrollPosition');
-      tm.handleEvent({
-        type: 'wheel',
+    test('wheel left/right event should change the current card', function() {
+      var index = tm.stack.indexOf(tm.currentCard.app);
+      assert.equal(index, tm.stack.length - 1);
+      var previousCard = tm.currentCard;
+
+      // Go left first, since we're at the end of the stack
+      window.dispatchEvent(new WheelEvent('wheel', {
         deltaMode: 2,
-        DOM_DELTA_PAGE: 2,
+        deltaX: -1
+      }));
+
+      assert.equal(tm.currentCard.app, tm.stack[index - 1]);
+      assert.equal(tm.currentCard.element.getAttribute('aria-hidden'), 'false');
+      assert.equal(previousCard.element.getAttribute('aria-hidden'), 'true');
+      previousCard = tm.currentCard;
+
+      // Go right
+      window.dispatchEvent(new WheelEvent('wheel', {
+        deltaMode: 2,
         deltaX: 1
-      });
-      assert.ok(tm.updateScrollPosition.calledOnce);
+      }));
+
+      assert.equal(tm.currentCard.app, tm.stack[index]);
+      assert.equal(tm.currentCard.element.getAttribute('aria-hidden'), 'false');
+      assert.equal(previousCard.element.getAttribute('aria-hidden'), 'true');
+      previousCard = tm.currentCard;
+
+      // Cannot scroll past the final card
+      window.dispatchEvent(new WheelEvent('wheel', {
+        deltaMode: 2,
+        deltaX: 1
+      }));
+
+      assert.equal(tm.currentCard.app, tm.stack[index]);
+      assert.equal(tm.currentCard.element.getAttribute('aria-hidden'), 'false');
     });
 
     test('hide destroys each card properly', function(done) {
@@ -407,7 +499,7 @@ suite('system/TaskManager >', function() {
           getExpectedCardPlacement(tm.cardsList.children[idx], idx);
         assert.equal(
           tm.cardsList.children[idx].style.transform,
-          `translate(${expected}px, 0px)`);
+          `translate(${expected}px, calc(50% + 0px))`);
       }
     });
 
@@ -457,7 +549,7 @@ suite('system/TaskManager >', function() {
           elem, MockStackManager.mCurrent
         );
         assert.equal(tm.currentCard.element.style.transform,
-                     `translate(${expectedLeft}px, 0px)`);
+                     `translate(${expectedLeft}px, calc(50% + 0px))`);
       });
 
       test('centering at different stack position after closing',
@@ -476,22 +568,82 @@ suite('system/TaskManager >', function() {
           var expectedLeft =
             getExpectedCardPlacement(elem, MockStackManager.mCurrent);
           assert.equal(tm.currentCard.element.style.transform,
-                       `translate(${expectedLeft}px, 0px)`);
+                       `translate(${expectedLeft}px, calc(50% + 0px))`);
         }).then(done, done);
         clock.tick(1000);
       });
     });
 
+    test('takes you home after closing all cards', (done) => {
+      MockStackManager.mStack.length = 0;
+      sinon.spy(tm, 'hide');
+      window.dispatchEvent(new CustomEvent('appterminated'));
+      clock.tick(1000);
+      assert.ok(tm.hide.calledOnce);
+      done();
+    });
 
-
-    test('kill cards and update', function() {
+    test('kill cards and update in response to StackManager', function() {
       MockStackManager.mStack.length = 2;
-      tm.handleEvent(new CustomEvent('appterminated'));
+      window.dispatchEvent(new CustomEvent('appterminated'));
       clock.tick(1000);
       assert.equal(
         document.querySelectorAll('.card').length,
         MockStackManager.mStack.length
       );
+    });
+
+    test('hide by tapping on the current card', function(done) {
+      // Tapping on the current card should trigger app.open('from-cardview')
+      // as well as hide the task manager.
+      var card = tm.currentCard;
+      this.sinon.spy(tm, 'hide');
+      card.app.open = function(how) {
+        try {
+          assert.equal(how, 'from-cardview');
+          assert.ok(tm.hide.calledWith(card.app));
+          done();
+        } catch(e) {
+          done(e);
+        }
+      };
+      card.element.click();
+    });
+
+    test('hide by tapping on a _different_ (non-current) card', function(done) {
+      // Tapping on a non-current card, we should first scroll to that app,
+      // and then open the app and hide the task manager.
+      var card = tm.appToCardMap.get(tm.stack[0]);
+      this.sinon.spy(tm, 'hide');
+      this.sinon.spy(tm, 'panToApp');
+
+      // Sanity: make sure we didn't choose the current card by mistake
+      assert.notEqual(card, tm.currentCard);
+
+      card.app.open = function(how) {
+        try {
+          // When we finally open the card, we'll know that we've scrolled
+          // to make it front-and-center when (card === tm.currentCard).
+          assert.equal(how, 'from-cardview');
+          assert.equal(card, tm.currentCard);
+          assert.ok(tm.panToApp.calledWith(card.app));
+          assert.ok(tm.hide.calledWith(card.app));
+          done();
+        } catch(e) {
+          done(e);
+        }
+      };
+
+      card.element.click();
+    });
+
+    test('kill a card by clicking on the close button', function(done) {
+      var card = tm.currentCard;
+      card.app.kill = function() {
+        done();
+      };
+      card.element.querySelector('.close-button').click();
+      clock.tick(1000);
     });
 
     // These events should trigger an exit:
@@ -542,22 +694,83 @@ suite('system/TaskManager >', function() {
       clock.tick(1000);
     });
 
+    suite('card-will-drag / scroll axis lock', function() {
+      test('handling card-will-drag (prevent scrolling)', function() {
+        tm.element.style.overflowX = 'scroll';
+        // In this test, they did not scroll, so the card-will-drag event
+        // should be passed through as-is, and we should set 'overflow: hidden'.
+        var willDragEvent = new CustomEvent('card-will-drag', {
+          detail: { firstTouchTimestamp: Date.now() },
+          bubbles: true,
+          cancelable: true
+        });
+
+        tm.currentCard.element.dispatchEvent(willDragEvent);
+        assert.isFalse(willDragEvent.defaultPrevented);
+        assert.equal(tm.element.style.overflowX, 'hidden');
+      });
+
+      test('handling card-will-drag (cancel event)', function() {
+        tm.element.style.overflowX = 'scroll';
+        // In this test, they scrolled AFTER the first touch, meaning we
+        // should prevent the card-will-drag event.
+        tm.element.dispatchEvent(new CustomEvent('scroll'));
+
+        var willDragEvent = new CustomEvent('card-will-drag', {
+          detail: { firstTouchTimestamp: Date.now() - 1000 },
+          bubbles: true,
+          cancelable: true
+        });
+
+        tm.currentCard.element.dispatchEvent(willDragEvent);
+        assert.isTrue(willDragEvent.defaultPrevented);
+        assert.equal(tm.element.style.overflowX, 'scroll');
+      });
+    });
+
+    test('card-dropped, not killed', function() {
+      tm.element.style.overflowX = 'hidden';
+      var dropEvent = new CustomEvent('card-dropped', {
+        detail: { willKill: false },
+        bubbles: true
+      });
+
+      tm.currentCard.element.dispatchEvent(dropEvent);
+      assert.equal(tm.element.style.overflowX, 'scroll');
+    });
+
+    test('card-dropped, kill the app', function(done) {
+      tm.element.style.overflowX = 'hidden';
+      var dropEvent = new CustomEvent('card-dropped', {
+        detail: { willKill: true },
+        bubbles: true
+      });
+
+      tm.currentCard.app.kill = function() {
+        done();
+      };
+
+      tm.currentCard.element.dispatchEvent(dropEvent);
+      assert.equal(tm.element.style.overflowX, 'scroll');
+      clock.tick(1000);
+    });
+
     test('browser-only filtering', function(done) {
       var allBrowserApps = [apps.browser1, apps.browser2, apps.search];
       clock.restore();
       this.timeout(20000);
+      var newStackPosition = -1;
       tm.hide().then(() => {
         return tm.show({ browserOnly: true });
       }).then(() => {
         assert.equal(tm.stack.length, allBrowserApps.length);
-        tm.hide(apps.browser1);
-        // cardviewclosed happens after tm.hide().
-        return new Promise((resolve) => {
-          window.addEventListener('cardviewclosed', (evt) => {
-            resolve(evt.detail.newStackPosition);
-          });
+
+        window.addEventListener('cardviewclosed', (evt) => {
+          newStackPosition = evt.detail.newStackPosition;
         });
-      }).then((newStackPosition) => {
+
+        return tm.hide(apps.browser1);
+      }).then(() => {
         assert.equal(
           newStackPosition,
           MockStackManager.mStack.indexOf(apps.browser1)

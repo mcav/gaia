@@ -36,6 +36,11 @@
     _currentFromStack: function sm_currentInStack() {
       return this._stack[this.position].getActiveWindow();
     },
+
+    /**
+     * Return true if the current window is not located in the stack.
+     * See `.getCurrent()`; this may be removable when bug 967405 lands.
+     */
     outOfStack: function sm_outOfStack() {
       if (this.position === -1) {
         return true;

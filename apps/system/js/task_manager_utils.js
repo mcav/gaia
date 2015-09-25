@@ -53,14 +53,14 @@ exports.TaskManagerUtils = {
 
   /**
    * Load a screenshot of the app into an element, only if the app is active.
-   * If it isn't, just use -moz-element.
+   * If it isn't, just use -moz-element as the background image.
    */
   loadAppScreenshot(app, element) {
     var isActive = (Service.query('AppWindowManager.getActiveWindow') ===
                     app.getBottomMostWindow());
-    element.classList.toggle('fullscreen', isActive && app.isFullScreen());
+    element.classList.toggle('fullscreen', !!(isActive && app.isFullScreen()));
     element.classList.toggle('maximized',
-      isActive && app.appChrome && app.appChrome.isMaximized());
+      !!(isActive && app.appChrome && app.appChrome.isMaximized()));
 
     var screenshot = 'none';
     if (isActive) {

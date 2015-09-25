@@ -9,6 +9,25 @@
  *
  * When TaskManager is shown, it grabs a copy of StackManager's stack of apps,
  * and instantiates one Card for each AppWindow in the stack.
+ *
+ * State Management
+ * ----------------
+ *
+ * State updates are handled, waterfall-style, with the following functions:
+ *
+ * - updateStack()
+ *     '- updateLayout()
+ *          '- updateScrollPosition()
+ *
+ * For instance, when the stack changes, we must perform layout; when layout
+ * changes, we must update our scroll position. Each function calls the
+ * dependent functions itself, to make state updates easy. Simply call the
+ * appropriate function corresponding to the highest-level changes needed,
+ * and we'll update the appropriate dependent state accordingly:
+ *
+ * - Call updateStack() when StackManager's stack has changed.
+ * - Call updateLayout() when window dimensions change.
+ * - Call updateScrollPosition() when the scroll position has changed.
  */
 function TaskManager() {
   this.appToCardMap = new Map(); // AppWindow -> Card
@@ -20,13 +39,14 @@ function TaskManager() {
 }
 
 TaskManager.prototype = {
-  CARD_GUTTER: 25,
-  // HierarchyManager needs this name:
-  name: 'TaskManager',
+  CARD_GUTTER: 25, // (horizontal margin between cards, in pixels)
+  name: 'TaskManager', // (needed by HierarchyManager)
   USE_SCREENSHOTS_SETTING: 'app.cards_view.screenshots.enabled',
 
   /**
    * Start the TaskManager module; this occurs once on startup.
+   *
+   * @return {Promise}
    */
   start() {
     this.element = document.getElementById('cards-view'),
@@ -37,6 +57,7 @@ TaskManager.prototype = {
     window.addEventListener('taskmanagershow', this);
     Service.request('registerHierarchy', this);
 
+    // Listen for changes to the "show screenshots" preference.
     this.setScreenshotSetting = this.setScreenshotSetting.bind(this);
     SettingsListener.observe(
       this.USE_SCREENSHOTS_SETTING,
@@ -51,6 +72,8 @@ TaskManager.prototype = {
 
   /**
    * Stop the TaskManager module.
+   *
+   * @return {Promise}
    */
   stop() {
     window.removeEventListener('taskmanagershow', this);
@@ -60,6 +83,9 @@ TaskManager.prototype = {
       this.USE_SCREENSHOTS_SETTING, this.setScreenshotSetting);
   },
 
+  /**
+   * Update the USE_SCREENSHOTS_SETTING value. See `Card` for more details.
+   */
   setScreenshotSetting(useScreenshots) {
     this.disableScreenshots = !useScreenshots;
   },
@@ -155,12 +181,6 @@ TaskManager.prototype = {
     this.updateScrollPosition();
   },
 
-  getCurrentIndex() {
-    return Math.min(
-      this.stack.length - 1,
-      Math.floor(this.element.scrollLeft / this.cardWidth));
-  },
-
   /**
    * Update our bookkeeping for when the scroll position changes, used
    * primarily for updating cards' accessibility attributes.
@@ -182,6 +202,16 @@ TaskManager.prototype = {
         card.element.setAttribute('aria-posinset', idx + 1);
       });
     }
+  },
+
+  /**
+   * Return the current index into `this.stack`, taking current scroll position
+   * into account. (Extracted for unit test purposes.)
+   */
+  getCurrentIndex() {
+    return Math.min(
+      this.stack.length - 1,
+      Math.floor(this.element.scrollLeft / this.cardWidth));
   },
 
   /**
@@ -222,7 +252,6 @@ TaskManager.prototype = {
       this.updateStack();
       this.panToApp(StackManager.getCurrent(), true);
       this.setActive(true);
-      this.publishNextTick('cardviewshown');
 
       var activeApp = Service.query('AppWindowManager.getActiveWindow');
       if (activeApp && activeApp.isHomescreen) {
@@ -234,6 +263,7 @@ TaskManager.prototype = {
       // for showing the task manager before cleaning things up.
       return TaskManagerUtils.waitForAppToClose(activeApp);
     }).then(() => {
+      this.publish('cardviewshown');
       this.screenElement.classList.add('cards-view');
       this.element.classList.remove('from-home');
     });
@@ -277,7 +307,7 @@ TaskManager.prototype = {
     // Remove '.cards-view' now, so that the incoming app animation begins its
     // transition at the proper scale.
     this.screenElement.classList.remove('cards-view');
-    this.publishNextTick('cardviewclosed', { detail });
+    this.publish('cardviewclosed', { detail });
 
     // Set the proper transition...
     if (newApp.isHomescreen) {
@@ -425,9 +455,14 @@ TaskManager.prototype = {
       case 'wheel':
         // Screen readers send a 'wheel' event for a two-finger swipe up.
         // Kill the current app if the user so desires.
-        if (evt.deltaMode === evt.DOM_DELTA_PAGE && evt.deltaY > 0) {
-          if (this.currentCard && this.currentCard.app.killable()) {
+        if (evt.deltaMode === evt.DOM_DELTA_PAGE && this.currentCard) {
+          var currentIndex = this.stack.indexOf(this.currentCard.app);
+          if (evt.deltaY > 0 && this.currentCard.app.killable()) {
             this.currentCard.app.kill();
+          } else if (evt.deltaX < 0 && currentIndex >= 1) {
+            this.panToApp(this.stack[currentIndex - 1]);
+          } else if (evt.deltaX > 0 && currentIndex < this.stack.length - 1) {
+            this.panToApp(this.stack[currentIndex + 1]);
           }
         }
         this.updateScrollPosition();
@@ -476,12 +511,6 @@ TaskManager.prototype = {
   publish(type, detail) {
     var event = new CustomEvent(type, detail || null);
     window.dispatchEvent(event);
-  },
-
-  publishNextTick(type, detail) {
-    setTimeout(() => {
-      this.publish(type, detail);
-    });
   },
 
   setFocus() {

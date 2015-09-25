@@ -8,7 +8,14 @@
  *
  * The `Card` class itself is inert; because TaskManager only updates its
  * display on launch, Card doesn't need to update its state in real time.
- * Card's swipe-up-to-delete behavior is handled by `SwipeToKillMotion`.
+ * Card's swipe-up-to-delete behavior is handled by `SwipeToKillMotion`,
+ * also included in this file.
+ *
+ * @param {AppWindow} app
+ * @param {boolean} disableScreenshots
+ *   Legacy option. If true, we will use a small icon preview on the card
+ *   rather than showing a full screenshot and/or moz-element of the app.
+ *   Originally introduced on 128MB Tarako devices to save memory.
  */
 function Card(app, disableScreenshots) {
   var el = document.createElement('li');
@@ -74,7 +81,9 @@ Card.prototype = {
    * itself positions the cards on the x-axis, but each card's SwipeToKillMotion
    * maintains the y-axis positioning.
    *
-   * NOTE: props.x and props.y must include units, e.g. 'px'.
+   * @param {object} props
+   *   An object with 'x' and/or 'y' properties. Each property MUST include
+   *   units, e.g. 'px'.
    */
   translate(props) {
     if ('x' in props) {
@@ -83,8 +92,14 @@ Card.prototype = {
     if ('y' in props) {
       this._translateY = props.y;
     }
+    // XXX: Due to a Flame-specific Gecko layout/rendering bug, we cannot use
+    // "top: 25%" to render the card at the appropriate Y position; we must
+    // instead include the desired Y offset here until that bug is fixed.
+    // In the metrics of this calculation, that's calc(50% + y).
+    // See <https://bugzil.la/1209194>; we can probably relocate the offset
+    // when that bug is fixed or when we don't care about Flame any more.
     this.element.style.transform =
-      `translate(${this._translateX}, ${this._translateY})`;
+      `translate(${this._translateX}, calc(50% + ${this._translateY}))`;
   },
 
   _translateX: '0px',

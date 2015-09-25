@@ -88,7 +88,7 @@
 #cards-view .card {
   display: block;
   position: absolute;
-  top: 25%;
+  top: 0;
   left: 0;
   width: 50vw;
   height: 50%;
