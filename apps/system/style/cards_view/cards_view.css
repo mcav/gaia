@@ -1,14 +1,22 @@
-#cards-view {
+#task-manager {
   visibility: hidden;
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
-  overflow-x: auto;
   height: 100%;
-  overflow-y: hidden;
   -moz-user-select: none;
   background-color: rgb(51, 51, 51);
+}
+
+#cards-view {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
   /* NOTE: We can't use scroll-snap-destination, even though it's what we want,
      because it thinks every element is positioned at 0px since everything
      is positioned using CSS transforms. */
@@ -19,7 +27,7 @@
 }
 
 @media not all and (-moz-physical-home-button) {
-  #screen:not(.software-button-disabled) #cards-view {
+  #screen:not(.software-button-disabled) #task-manager {
     height: calc(100% - var(--software-home-button-height));
     bottom: var(--software-home-button-height);
   }
@@ -30,7 +38,7 @@
   opacity: 0;
 }
 
-#screen.software-button-enabled #cards-view {
+#screen.software-button-enabled #task-manager {
   /* clip the horizontal scrollbar */
   height: calc(100% - var(--software-home-button-height));
   bottom: var(--software-home-button-height);
@@ -38,7 +46,7 @@
 
 @media (orientation:landscape) {
   /* not currently in use, see bug 1174325 */
-  #screen.software-button-enabled #cards-view {
+  #screen.software-button-enabled #task-manager {
     height: 100%;
     width: calc(100% - var(--software-home-button-height));
     bottom: 0;
@@ -46,11 +54,11 @@
   }
 }
 
-#cards-view.active {
+#task-manager.active {
   visibility: inherit;
 }
 
-#cards-view .no-recent-apps {
+#task-manager .no-recent-apps {
   display: none;
   position: absolute;
   top: calc(50% - 1rem);
@@ -63,11 +71,11 @@
   font-weight: 500;
 }
 
-#cards-view.empty .no-recent-apps {
+#task-manager.empty .no-recent-apps {
   display: block;
 }
 
-#cards-view.empty {
+#task-manager.empty {
   background-color: rgba(51, 51, 51, .85);
 }
 
@@ -178,11 +186,11 @@
   opacity: 1;
 }
 
-#cards-view.filtered {
+#task-manager.filtered {
   background-color: rgba(255, 255, 255, 1);
 }
 
-#cards-view.filtered .card .screenshotView {
+#task-manager.filtered .card .screenshotView {
   outline: solid 1px rgba(133, 133, 133, 0.8);
 }
 
@@ -202,11 +210,11 @@
   background-color: rgb(95, 95, 95);
 }
 
-#cards-view.filtered .card-tray {
+#task-manager.filtered .card-tray {
   background-color: rgb(244, 244, 244);
 }
 
-#cards-view.filtered .private .card-tray {
+#task-manager.filtered .private .card-tray {
   background-color: rgb(95, 95, 95);
 }
 
@@ -234,7 +242,7 @@
   background-image: url(../task-manager/light/close.png);
   left: 0;
 }
-#cards-view.filtered .card-tray .close-button {
+#task-manager.filtered .card-tray .close-button {
   background-image: url(../task-manager/dark/close.png);
 }
 
@@ -243,7 +251,7 @@
   right: 0;
   display: none;
 }
-#cards-view.filtered .card-tray .favorite-button {
+#task-manager.filtered .card-tray .favorite-button {
   background-image: url(../task-manager/dark/favorite.png);
 }
 
@@ -273,7 +281,7 @@
 }
 
 #cards-view .private .close-button,
-#cards-view.filtered .private .close-button {
+#task-manager.filtered .private .close-button {
   background-image: url(../task-manager/light/close.png);
 }
 
@@ -303,7 +311,7 @@
   pointer-events: auto;
 }
 
-#cards-view.filtered .card .titles h1 {
+#task-manager.filtered .card .titles h1 {
   color: #4d4d4d;
 }
 
@@ -326,7 +334,7 @@
   font-style: italic;
 }
 
-#cards-view.filtered .card p.subtitle {
+#task-manager.filtered .card p.subtitle {
   color: #858585;
 }
 
@@ -355,7 +363,7 @@
   background-image: url("../chrome/images/dark/ssl_broken.png");
 }
 
-#cards-view.filtered .card.show-subtitle[data-ssl="secure"] p.subtitle {
+#task-manager.filtered .card.show-subtitle[data-ssl="secure"] p.subtitle {
   background-image: url("../chrome/images/light/ssl.png");
 }
 #cards-view .card.show-subtitle[data-ssl="broken"] p.subtitle {
@@ -369,11 +377,11 @@ html[dir="rtl"] #cards-view .card.show-subtitle[data-ssl="secure"] p.subtitle {
 
 
 /* Animations */
-#cards-view.from-home {
+#task-manager.from-home {
   animation: cardview-from-home 0.3s forwards cubic-bezier(0.7, 0.0, 1.0, 1.0);
 }
 
-#cards-view.to-home {
+#task-manager.to-home {
   animation: cardview-to-home 0.3s forwards cubic-bezier(0.7, 0.0, 1.0, 1.0);
   animation-fill-mode: forwards;
 }
@@ -386,4 +394,40 @@ html[dir="rtl"] #cards-view .card.show-subtitle[data-ssl="secure"] p.subtitle {
 @keyframes cardview-to-home {
   0%   { opacity: 1; }
   100% { opacity: 0; }
+}
+
+
+
+
+#task-manager-buttons {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: space-between;
+}
+
+#task-manager-new-private-sheet-button {
+  width: 7.5rem;
+  height: 4.8rem;
+  border: none;
+  background: url("../task-manager/images/tm_pb_tab.png") no-repeat center;
+  background-size: 3.5rem 1.8rem;
+}
+
+#task-manager-new-sheet-button {
+  width: 6.4rem;
+  height: 4.8rem;
+  border: none;
+  background: url("../task-manager/images/tm_new_tab.png") no-repeat center;
+  background-size: 2.4rem 2.4rem;
+}
+
+#task-manager-new-private-sheet-button:active {
+  background-image: url("../task-manager/images/tm_pb_tab_press.png");
+}
+
+#task-manager-new-sheet-button:active {
+  background-image: url("../task-manager/images/tm_new_tab_press.png");
 }

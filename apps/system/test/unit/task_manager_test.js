@@ -57,9 +57,16 @@ suite('system/TaskManager >', function() {
 
     document.body.innerHTML = `
     <div id="screen">
-      <div id="cards-view" data-z-index-level="cards-view">
-        <ul id="cards-list"></ul>
-        <span id="cards-no-recent-windows" class="no-recent-apps"></span>
+      <div id="task-manager" data-z-index-level="cards-view">
+        <div id="cards-view">
+          <ul id="cards-list"></ul>
+          <span id="cards-no-recent-windows" class="no-recent-apps"
+                data-l10n-id="no-recent-app-windows"></span>
+        </div>
+        <div id="task-manager-buttons">
+          <button id="task-manager-new-private-sheet-button"></button>
+          <button id="task-manager-new-sheet-button"></button>
+        </div>
       </div>
     </div>
     `;
@@ -162,7 +169,7 @@ suite('system/TaskManager >', function() {
       assert.isTrue(
         document.querySelector('#screen').classList.contains('cards-view'));
       assert.isTrue(isActivated);
-      assert.ok(document.querySelector('#cards-view.empty.active'));
+      assert.ok(document.querySelector('#task-manager.empty.active'));
       // We're pretending to be in fullscreen mode.
       assert.isTrue(document.mozCancelFullScreen.calledOnce);
 
@@ -332,7 +339,7 @@ suite('system/TaskManager >', function() {
 
     test('Proper state', () => {
       assert.isTrue(tm.isShown());
-      assert.ok(document.querySelector('#cards-view.active:not(.empty)'));
+      assert.ok(document.querySelector('#task-manager.active:not(.empty)'));
 
       assert.equal(
         MockStackManager.getCurrent(),
@@ -696,7 +703,7 @@ suite('system/TaskManager >', function() {
 
     suite('card-will-drag / scroll axis lock', function() {
       test('handling card-will-drag (prevent scrolling)', function() {
-        tm.element.style.overflowX = 'scroll';
+        tm.scrollElement.style.overflowX = 'scroll';
         // In this test, they did not scroll, so the card-will-drag event
         // should be passed through as-is, and we should set 'overflow: hidden'.
         var willDragEvent = new CustomEvent('card-will-drag', {
@@ -707,14 +714,14 @@ suite('system/TaskManager >', function() {
 
         tm.currentCard.element.dispatchEvent(willDragEvent);
         assert.isFalse(willDragEvent.defaultPrevented);
-        assert.equal(tm.element.style.overflowX, 'hidden');
+        assert.equal(tm.scrollElement.style.overflowX, 'hidden');
       });
 
       test('handling card-will-drag (cancel event)', function() {
-        tm.element.style.overflowX = 'scroll';
+        tm.scrollElement.style.overflowX = 'scroll';
         // In this test, they scrolled AFTER the first touch, meaning we
         // should prevent the card-will-drag event.
-        tm.element.dispatchEvent(new CustomEvent('scroll'));
+        tm.scrollElement.dispatchEvent(new CustomEvent('scroll'));
 
         var willDragEvent = new CustomEvent('card-will-drag', {
           detail: { firstTouchTimestamp: Date.now() - 1000 },
@@ -724,23 +731,23 @@ suite('system/TaskManager >', function() {
 
         tm.currentCard.element.dispatchEvent(willDragEvent);
         assert.isTrue(willDragEvent.defaultPrevented);
-        assert.equal(tm.element.style.overflowX, 'scroll');
+        assert.equal(tm.scrollElement.style.overflowX, 'scroll');
       });
     });
 
     test('card-dropped, not killed', function() {
-      tm.element.style.overflowX = 'hidden';
+      tm.scrollElement.style.overflowX = 'hidden';
       var dropEvent = new CustomEvent('card-dropped', {
         detail: { willKill: false },
         bubbles: true
       });
 
       tm.currentCard.element.dispatchEvent(dropEvent);
-      assert.equal(tm.element.style.overflowX, 'scroll');
+      assert.equal(tm.scrollElement.style.overflowX, 'scroll');
     });
 
     test('card-dropped, kill the app', function(done) {
-      tm.element.style.overflowX = 'hidden';
+      tm.scrollElement.style.overflowX = 'hidden';
       var dropEvent = new CustomEvent('card-dropped', {
         detail: { willKill: true },
         bubbles: true
@@ -751,7 +758,7 @@ suite('system/TaskManager >', function() {
       };
 
       tm.currentCard.element.dispatchEvent(dropEvent);
-      assert.equal(tm.element.style.overflowX, 'scroll');
+      assert.equal(tm.scrollElement.style.overflowX, 'scroll');
       clock.tick(1000);
     });
 

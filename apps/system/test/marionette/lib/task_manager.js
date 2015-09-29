@@ -7,7 +7,8 @@
 
   TaskManager.prototype = {
     selectors: {
-      element: '#cards-view',
+      element: '#task-manager',
+      scrollElement: '#cards-view',
       cards: '#cards-view li',
       screenshot: '.screenshotView',
       icon: '.appIcon'
