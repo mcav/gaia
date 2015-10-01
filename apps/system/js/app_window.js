@@ -876,28 +876,14 @@
         return;
       }
 
+      this.appChrome = new AppChrome(this);
+
       if (this.manifest) {
         var that = this;
         that.element.addEventListener('_opened', function onOpened() {
           that.element.removeEventListener('_opened', onOpened);
-          that.appChrome = new AppChrome(that);
-
-          // Some signals that chrome needs to respond to can occur before
-          // chrome has loaded - in those cases, manually call the handlers.
-          if (that.inError) {
-            that.appChrome.handleEvent({type: 'mozbrowsererror'});
-          }
-          if (that.loading) {
-            that.appChrome.handleEvent({type: 'mozbrowserloadstart'});
-            that.appChrome.handleEvent({type: '_loading'});
-          }
-          if (that.metachangeDetail) {
-            that.appChrome.handleEvent({type: 'mozbrowsermetachange',
-                                        detail: that.metachangeDetail});
-          }
+          that.appChrome.reConfig();
         });
-      } else {
-        this.appChrome = new AppChrome(this);
       }
     };
 

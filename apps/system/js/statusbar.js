@@ -329,7 +329,8 @@
     },
 
     setAppearance: function() {
-      var app = Service.query('getTopMostWindow');
+      var app = Service.query('getTopMostWindow') ||
+        Service.query('StackManager.getCurrent');
       if (!app) {
         return;
       }
